@@ -4,6 +4,7 @@ const fs = require("fs");
 const xlsx = require("xlsx");
 const path = require("path");
 
+// const matchId = "icc-cricket-world-cup-2019-1144415";
 const matchId = "ipl-2020-21-1210595";
 
 const URL = `https://www.espncricinfo.com/series/${matchId}/match-results`;
@@ -19,14 +20,11 @@ function result(err, res, html) {
   } else {
     const $ = cheerio.load(html);
     const scoreCard = $('[data-hover = "Scorecard"]');
-    // console.log(scorecard.length);
 
-    let count = 0;
     for (let i = 0; i < scoreCard.length; i++) {
       count++;
       const matchFixtureURL =
         "https://www.espncricinfo.com" + $(scoreCard[i]).attr("href");
-      // console.log(matchFixtureURL);
 
       matchStat.push({
         Match: $(scoreCard[i]).attr("href").split("/")[3].split("-").join(" "),
@@ -73,41 +71,42 @@ function fixture(index, err, res, html) {
 
   function batInningOne(html, index) {
     let batsmanrows = html.find("tbody>tr");
-
     for (let i = 0; i < batsmanrows.length; i++) {
-      if (i % 2 == 0) {
-        let colsData = $(batsmanrows[i]).find("td");
-        if (colsData.length == 4) {
-          let extras = $(colsData[2]).text();
-          batting1.push({ Extras: extras });
-        } else {
-          let name = $($(colsData[0]).find("a")).text();
-          let run = $(colsData[2]).text();
-          let ball = $(colsData[3]).text();
-          let four = $(colsData[5]).text();
-          let six = $(colsData[6]).text();
-          let sr = $(colsData[7]).text();
+      let colsData = $(batsmanrows[i]).find("td");
+      if (colsData.length == 4) {
+        let extras = $(colsData[2]).text();
+        batting1.push({ Extras: extras });
+      } else if (colsData.length == 8) {
+        let name = $($(colsData[0]).find("a")).text();
+        let run = $(colsData[2]).text();
+        let ball = $(colsData[3]).text();
+        let four = $(colsData[5]).text();
+        let six = $(colsData[6]).text();
+        let sr = $(colsData[7]).text();
 
-          batting1.push({
-            Name: name,
-            Runs: run,
-            Balls: ball,
-            "4s": four,
-            "6s": six,
-            SR: sr,
-          });
-        }
+        batting1.push({
+          Name: name,
+          Runs: run,
+          Balls: ball,
+          "4s": four,
+          "6s": six,
+          SR: sr,
+        });
       }
     }
+    let totalRunRows = html.find("tfoot>tr");
+    let totalRun = $($($(totalRunRows[0]).find("td"))[2])
+      .text()
+      .trim();
+    batting1.push({ Total: totalRun });
   }
 
   function bowlInningOne(html, index) {
     let bowlerRows = html.find("tbody>tr");
 
     for (let i = 0; i < bowlerRows.length; i++) {
-      if (i % 2 == 0) {
-        let colsData = $(bowlerRows[i]).find("td");
-
+      let colsData = $(bowlerRows[i]).find("td");
+      if (colsData.length == 11) {
         let name = $($(colsData[0]).find("a")).text();
         let over = $(colsData[1]).text();
         let M = $(colsData[2]).text();
@@ -141,38 +140,40 @@ function fixture(index, err, res, html) {
     let batsmanrows = html.find("tbody>tr");
 
     for (let i = 0; i < batsmanrows.length; i++) {
-      if (i % 2 == 0) {
-        let colsData = $(batsmanrows[i]).find("td");
-        if (colsData.length == 4) {
-          let extras = $(colsData[2]).text();
-          batting2.push({ Extras: extras });
-        } else {
-          let name = $($(colsData[0]).find("a")).text();
-          let run = $(colsData[2]).text();
-          let ball = $(colsData[3]).text();
-          let four = $(colsData[5]).text();
-          let six = $(colsData[6]).text();
-          let sr = $(colsData[7]).text();
+      let colsData = $(batsmanrows[i]).find("td");
+      if (colsData.length == 4) {
+        let extras = $(colsData[2]).text();
+        batting2.push({ Extras: extras });
+      } else if (colsData.length == 8) {
+        let name = $($(colsData[0]).find("a")).text();
+        let run = $(colsData[2]).text();
+        let ball = $(colsData[3]).text();
+        let four = $(colsData[5]).text();
+        let six = $(colsData[6]).text();
+        let sr = $(colsData[7]).text();
 
-          batting2.push({
-            Name: name,
-            Runs: run,
-            Balls: ball,
-            "4s": four,
-            "6s": six,
-            SR: sr,
-          });
-        }
+        batting2.push({
+          Name: name,
+          Runs: run,
+          Balls: ball,
+          "4s": four,
+          "6s": six,
+          SR: sr,
+        });
       }
     }
+    let totalRunRows = html.find("tfoot>tr");
+    let totalRun = $($($(totalRunRows[0]).find("td"))[2])
+      .text()
+      .trim();
+    batting2.push({ Total: totalRun });
   }
 
   function bowlInningTwo(html, index) {
     let bowlerRows = html.find("tbody>tr");
     for (let i = 0; i < bowlerRows.length; i++) {
-      if (i % 2 == 0) {
-        let colsData = $(bowlerRows[i]).find("td");
-
+      let colsData = $(bowlerRows[i]).find("td");
+      if (colsData.length == 11) {
         let name = $($(colsData[0]).find("a")).text();
         let over = $(colsData[1]).text();
         let M = $(colsData[2]).text();
@@ -241,8 +242,7 @@ function fixture(index, err, res, html) {
     xlsx.utils.book_append_sheet(newWB, newWS, sheetName);
     xlsx.writeFile(newWB, filePath);
   }
-  if (counter == 60) {
-    // console.log(matchStat);
+  if (counter == matchStat.length) {
     fs.writeFileSync("Data.json", JSON.stringify(matchStat));
   }
 }
